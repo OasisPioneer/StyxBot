@@ -16,10 +16,10 @@ static std::mutex LogMutex;
 template <typename T>
 bool WriteConfigFile(const std::string& Path, const std::string& Key, const T& Value)
 {
-    std::lock_guard<std::mutex> Lock(LogMutex);  // 确保线程安全 / Ensure thread safety
+    std::lock_guard<std::mutex> Lock(LogMutex);  // 确保线程安全
 
-    nlohmann::json Config;  // JSON 对象，用于存储配置 / JSON object to store configuration
-    std::ifstream InputFile(Path);  // 打开文件以读取现有配置 / Open file to read existing configuration
+    nlohmann::json Config;  // JSON 对象，用于存储配置
+    std::ifstream InputFile(Path);  // 打开文件以读取现有配置
     if (InputFile.is_open())
     {
         try
@@ -35,9 +35,11 @@ bool WriteConfigFile(const std::string& Path, const std::string& Key, const T& V
                 Config = nlohmann::json::parse(Content);
                 LOG.Log(LoggingSystem::INFO, "Configuration File Loaded Successfully");
             }
-        } catch (const std::exception& E)
+        }
+        catch (const std::exception& E)
         {
             LOG.Log(LoggingSystem::ERROR, "Configuration File Loading Failed: " + std::string(E.what()));
+            InputFile.close();
             return false;
         }
         InputFile.close();
@@ -70,49 +72,63 @@ bool WriteConfigFile(const std::string& Path, const std::string& Key, const T& V
         LOG.Log(LoggingSystem::ERROR, "Configuration File Saving Failed");
         return false;
     }
+
     OutputFile << Config.dump(4) << std::endl; // 写入格式化后的 JSON 数据
+    if (!OutputFile.good())
+    {
+        LOG.Log(LoggingSystem::ERROR, "Failed to Write to Configuration File");
+        OutputFile.close();
+        return false;
+    }
+
     OutputFile.close();
     LOG.Log(LoggingSystem::INFO, "Configuration File Updated Successfully");
     return true;
 }
 
-template <typename T>
-std::optional<T> ReadConfigFile(const std::string& Path, const std::string& Key)
-{
-    std::lock_guard<std::mutex> Lock(LogMutex);
+        template <typename T>
+        std::optional<T> ReadConfigFile(const std::string& Path, const std::string& Key)
+        {
+            std::lock_guard<std::mutex> Lock(LogMutex);
 
-    nlohmann::json Config;
-    std::ifstream InputFile(Path);
-    if (InputFile.is_open())
-    {
-        try
-        {
-            if (!nlohmann::json::accept(InputFile))
+            nlohmann::json Config;
+            std::ifstream InputFile(Path);
+            if (InputFile.is_open())
             {
-                LOG.Log(LoggingSystem::ERROR, "Invalid JSON Format in Configuration File");
-                return std::nullopt;
-            }
-            InputFile >> Config;
-            LOG.Log(LoggingSystem::INFO, "Configuration File Loaded Successfully");
-        } catch (const std::exception& E)
+                try
+                {
+        std::string Content((std::istreambuf_iterator<char>(InputFile)), std::istreambuf_iterator<char>());
+        if (Content.empty() || !nlohmann::json::accept(Content))
         {
-            LOG.Log(LoggingSystem::ERROR, "Configuration File Loading Failed" + std::string(E.what()));
+            LOG.Log(LoggingSystem::ERROR, "Invalid or Empty JSON Format in Configuration File");
             return std::nullopt;
         }
-        InputFile.close();
-    } else
-    {
-        LOG.Log(LoggingSystem::INFO, "The Configuration File Does Not Exist, Creating a New One");
-        std::ofstream OutputFile(Path);
-        if (!OutputFile)
-        {
-            LOG.Log(LoggingSystem::ERROR, "Configuration File Creation Failed");
-            return false;
+        try {
+            Config = nlohmann::json::parse(Content);
+            LOG.Log(LoggingSystem::INFO, "Configuration File Loaded Successfully");
+        } catch (const std::exception& E) {
+            LOG.Log(LoggingSystem::ERROR, "Configuration File Parsing Failed: " + std::string(E.what()));
+            return std::nullopt;
+        }
+                } catch (const std::exception& E)
+                {
+        LOG.Log(LoggingSystem::ERROR, "Configuration File Loading Failed" + std::string(E.what()));
+        return std::nullopt;
+                }
+                InputFile.close();
+            } else
+            {
+                LOG.Log(LoggingSystem::INFO, "The Configuration File Does Not Exist, Creating a New One");
+                std::ofstream OutputFile(Path);
+                if (!OutputFile)
+                {
+        LOG.Log(LoggingSystem::ERROR, "Configuration File Creation Failed");
+        return std::nullopt;
         }
         OutputFile << Config.dump(4) << std::endl;
         OutputFile.close();
         LOG.Log(LoggingSystem::INFO, "Configuration File Created Successfully");
-        return true;
+        return std::nullopt;
     }
 
     nlohmann::json* Current = &Config;
@@ -133,7 +149,16 @@ std::optional<T> ReadConfigFile(const std::string& Path, const std::string& Key)
     std::string FinalKey = Key.substr(Pos);
     if (Current->contains(FinalKey))
     {
-        return (*Current)[FinalKey].get<T>();
+        try {
+            if constexpr (std::is_same_v<T, std::string>) {
+                return (*Current)[FinalKey].get<std::string>();
+            } else {
+                return (*Current)[FinalKey].get<T>();
+            }
+        } catch (const nlohmann::json::type_error& E) {
+            LOG.Log(LoggingSystem::ERROR, "Type mismatch in configuration file for key: " + Key + ", expected type: " + typeid(T).name());
+            return std::nullopt;
+        }
     }
 
     LOG.Log(LoggingSystem::WARNING, "Configuration Key Does Not Exist: " + Key);
