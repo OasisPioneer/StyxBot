@@ -14,6 +14,7 @@ find_package(SQLite3 REQUIRED)
 add_executable(StyxBot
 		Src/Main.CPP
 		Src/LoggingSystem.CPP
+		Src/NetworkRequest.CPP
 )
 
 target_include_directories(StyxBot PRIVATE

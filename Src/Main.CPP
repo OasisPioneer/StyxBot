@@ -2,11 +2,16 @@
 #include "LoggingSystem.HPP"
 #include "ConfigFileOperations.HPP"
 
+const std::string ADMIN_ID_KEY = "AdministratorIDCard";
+const std::string TELEGRAM_TOKEN_KEY = "TelegramBotToken";
+
 // 主函数入口 / Main function entry point
 int main(int argc, char* argv[])
 {
     // 配置文件路径 / Configuration file path
     const std::string ConfigFilePath = "ConfigFile.Json";
+    // 初始化日志系统 / Initialize logging system
+    LoggingSystem LOG("System-LOG.txt");
     
     // 检查配置文件路径是否正确，如果不存在则创建默认配置文件
     if (!std::filesystem::exists(ConfigFilePath) || std::filesystem::is_empty(ConfigFilePath)) {
@@ -30,9 +35,6 @@ int main(int argc, char* argv[])
         }
     }
 
-    // 初始化日志系统 / Initialize logging system
-    LoggingSystem LOG("SystemLog.txt");
-
     // 如果没有提供命令行参数，则提示用户使用帮助命令 / If no command line arguments are provided, prompt the user to use the help command
     if (argc < 2)
     {
@@ -55,7 +57,7 @@ int main(int argc, char* argv[])
                 {
                     long long AdminID = std::stoll(argv[i + 1]); // 将字符串转换为整数 / Convert string to integer
                     LOG.Log(LoggingSystem::DEBUG, std::to_string(AdminID)); // 记录调试信息 / Record debug information
-                    if (WriteConfigFile(ConfigFilePath, "AdministratorIDCard", AdminID))
+                    if (WriteConfigFile(ConfigFilePath, ADMIN_ID_KEY, AdminID))
                     // 写入配置文件 / Write to configuration file
                     {
                         LOG.Log(LoggingSystem::INFO, "Set Administrator ID Card Success as Integer");
@@ -83,7 +85,7 @@ int main(int argc, char* argv[])
             if (i + 1 < argc) // 检查是否有后续参数 / Check if there is a subsequent parameter
             {
                 LOG.Log(LoggingSystem::DEBUG, argv[i + 1]); // 记录调试信息 / Record debug information
-                if (WriteConfigFile(ConfigFilePath, "TelegramBotToken", argv[i + 1]))
+                if (WriteConfigFile(ConfigFilePath, TELEGRAM_TOKEN_KEY, argv[i + 1]))
                 // 写入配置文件 / Write to configuration file
                 {
                     LOG.Log(LoggingSystem::INFO,
@@ -107,9 +109,9 @@ int main(int argc, char* argv[])
             std::string HELPINFO;
             HELPINFO = "⇐========================================⇒\n";
             HELPINFO += "‖ [How to use] " + std::string(argv[0]) + " --Command\n"; // 如何使用 / How to use
-            HELPINFO += "‖ --H 或 --HELP [Get Help]\n"; // 获取帮助 / Get help
-            HELPINFO += "‖ --A 或 --ADMIN [Set Telegram Bot Admin]\n"; // 设置管理员 / Set admin
-            HELPINFO += "‖ --T 或 --TOKEN [Set Telegram Bot Token]\n"; // 设置令牌 / Set token
+            HELPINFO += "‖ --H Or --HELP [Get Help]\n"; // 获取帮助 / Get help
+            HELPINFO += "‖ --A Or --ADMIN [Set Telegram Bot Admin]\n"; // 设置管理员 / Set admin
+            HELPINFO += "‖ --T Or --TOKEN [Set Telegram Bot Token]\n"; // 设置令牌 / Set token
             HELPINFO += "⇐========================================⇒";
             std::cout << HELPINFO << std::endl; // 输出帮助信息 / Output help information
         } else if (Command == "--S" || Command == "--START")
@@ -117,8 +119,8 @@ int main(int argc, char* argv[])
             LOG.Log(LoggingSystem::INFO, "System Self-Checking...");
 
             try {
-                auto AdminID = ReadConfigFile<long long>(ConfigFilePath, "AdministratorIDCard");
-                auto TelegramBotToken = ReadConfigFile<std::string>(ConfigFilePath, "TelegramBotToken");
+                auto AdminID = ReadConfigFile<long long>(ConfigFilePath, ADMIN_ID_KEY);
+                auto TelegramBotToken = ReadConfigFile<std::string>(ConfigFilePath, TELEGRAM_TOKEN_KEY);
             
                 if (!AdminID.has_value() || AdminID.value() == 0 || 
                     !TelegramBotToken.has_value() || TelegramBotToken.value().empty())
