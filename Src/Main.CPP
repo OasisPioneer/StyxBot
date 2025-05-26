@@ -1,6 +1,7 @@
 #include <iostream>
 #include "LoggingSystem.HPP"
 #include "ConfigFileOperations.HPP"
+#include "EventHandlerCenter.HPP"
 
 const std::string ADMIN_ID_KEY = "AdministratorIDCard";
 const std::string TELEGRAM_TOKEN_KEY = "TelegramBotToken";
@@ -143,7 +144,8 @@ int main(int argc, char* argv[])
                 return 1; // 结束程序
             }
 
-
+            EventHandlerCenter EventHandlerCenter;
+            EventHandlerCenter.Start();
         }
         else
         {

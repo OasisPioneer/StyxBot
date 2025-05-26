@@ -9,13 +9,13 @@
 #include "LoggingSystem.HPP"
 #include <nlohmann/json.hpp>
 
-static LoggingSystem LOG("ConfigFile Log.txt");
 static std::mutex LogMutex;
 
-// 将配置项写入指定路径的 JSON 文件 / Write configuration item to a JSON file at the specified path
+// 将配置项写入指定路径的 JSON 文件
 template <typename T>
 bool WriteConfigFile(const std::string& Path, const std::string& Key, const T& Value)
 {
+    static LoggingSystem LOG("ConfigFile Log.txt");
     std::lock_guard<std::mutex> Lock(LogMutex);  // 确保线程安全
 
     nlohmann::json Config;  // JSON 对象，用于存储配置
@@ -86,48 +86,49 @@ bool WriteConfigFile(const std::string& Path, const std::string& Key, const T& V
     return true;
 }
 
-        template <typename T>
-        std::optional<T> ReadConfigFile(const std::string& Path, const std::string& Key)
-        {
-            std::lock_guard<std::mutex> Lock(LogMutex);
+template <typename T>
+std::optional<T> ReadConfigFile(const std::string& Path, const std::string& Key)
+{
+    static LoggingSystem LOG("ReadConfigFile Log.txt"); // 修复 LOG 初始化
+    std::lock_guard<std::mutex> Lock(LogMutex);
 
-            nlohmann::json Config;
-            std::ifstream InputFile(Path);
-            if (InputFile.is_open())
-            {
-                try
-                {
-        std::string Content((std::istreambuf_iterator<char>(InputFile)), std::istreambuf_iterator<char>());
-        if (Content.empty() || !nlohmann::json::accept(Content))
+    nlohmann::json Config;
+    std::ifstream InputFile(Path);
+    if (InputFile.is_open())
+    {
+        try
         {
-            LOG.Log(LoggingSystem::ERROR, "Invalid or Empty JSON Format in Configuration File");
-            return std::nullopt;
-        }
-        try {
-            Config = nlohmann::json::parse(Content);
-            LOG.Log(LoggingSystem::INFO, "Configuration File Loaded Successfully");
-        } catch (const std::exception& E) {
-            LOG.Log(LoggingSystem::ERROR, "Configuration File Parsing Failed: " + std::string(E.what()));
-            return std::nullopt;
-        }
-                } catch (const std::exception& E)
-                {
-        LOG.Log(LoggingSystem::ERROR, "Configuration File Loading Failed" + std::string(E.what()));
-        return std::nullopt;
-                }
-                InputFile.close();
-            } else
+            std::string Content((std::istreambuf_iterator<char>(InputFile)), std::istreambuf_iterator<char>());
+            if (Content.empty() || !nlohmann::json::accept(Content))
             {
-                LOG.Log(LoggingSystem::INFO, "The Configuration File Does Not Exist, Creating a New One");
-                std::ofstream OutputFile(Path);
-                if (!OutputFile)
-                {
-        LOG.Log(LoggingSystem::ERROR, "Configuration File Creation Failed");
-        return std::nullopt;
+                LOG.Log(LoggingSystem::ERROR, "无效或空的 JSON 格式配置文件");
+                InputFile.close();
+                return std::nullopt;
+            }
+
+            Config = nlohmann::json::parse(Content);
+            LOG.Log(LoggingSystem::INFO, "配置文件加载成功");
+        }
+        catch (const std::exception& E)
+        {
+            LOG.Log(LoggingSystem::ERROR, "配置文件解析失败: " + std::string(E.what()));
+            InputFile.close();
+            return std::nullopt;
+        }
+        InputFile.close();
+    }
+    else
+    {
+        LOG.Log(LoggingSystem::INFO, "配置文件不存在，正在创建新文件");
+        std::ofstream OutputFile(Path);
+        if (!OutputFile)
+        {
+            LOG.Log(LoggingSystem::ERROR, "配置文件创建失败");
+            return std::nullopt;
         }
         OutputFile << Config.dump(4) << std::endl;
         OutputFile.close();
-        LOG.Log(LoggingSystem::INFO, "Configuration File Created Successfully");
+        LOG.Log(LoggingSystem::INFO, "配置文件创建成功");
         return std::nullopt;
     }
 
@@ -139,7 +140,7 @@ bool WriteConfigFile(const std::string& Path, const std::string& Key, const T& V
         std::string SubKey = Key.substr(Pos, Next - Pos);
         if ((*Current)[SubKey].is_null())
         {
-            LOG.Log(LoggingSystem::WARNING, "Configuration Key Does Not Exist: " + Key);
+            LOG.Log(LoggingSystem::WARNING, "配置键不存在: " + Key);
             return std::nullopt;
         }
         Current = &((*Current)[SubKey]);
@@ -149,19 +150,25 @@ bool WriteConfigFile(const std::string& Path, const std::string& Key, const T& V
     std::string FinalKey = Key.substr(Pos);
     if (Current->contains(FinalKey))
     {
-        try {
-            if constexpr (std::is_same_v<T, std::string>) {
+        try
+        {
+            if constexpr (std::is_same_v<T, std::string>)
+            {
                 return (*Current)[FinalKey].get<std::string>();
-            } else {
+            }
+            else
+            {
                 return (*Current)[FinalKey].get<T>();
             }
-        } catch (const nlohmann::json::type_error& E) {
-            LOG.Log(LoggingSystem::ERROR, "Type mismatch in configuration file for key: " + Key + ", expected type: " + typeid(T).name());
+        }
+        catch (const nlohmann::json::type_error& E)
+        {
+            LOG.Log(LoggingSystem::ERROR, "配置文件类型不匹配，键: " + Key + ", 预期类型: " + typeid(T).name()+ std::string(E.what()));
             return std::nullopt;
         }
     }
 
-    LOG.Log(LoggingSystem::WARNING, "Configuration Key Does Not Exist: " + Key);
+    LOG.Log(LoggingSystem::WARNING, "配置键不存在: " + Key);
     return std::nullopt;
 }
 
