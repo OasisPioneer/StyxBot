@@ -9,6 +9,6 @@ To properly set up the bot, please ensure you have a valid configuration file. T
 Example configuration file content:
 ```json
 {
-    "AdministratorIDCard": "7125495680",
-    "TelegramBotToken": "7491395783:AAFRMKiA-ZzBXID-CYuLRuw15cWsTAP4pcc"
+    "AdministratorIDCard": "",
+    "TelegramBotToken": ""
 }
