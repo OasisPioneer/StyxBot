@@ -1,4 +1,4 @@
-#include "EventHandlerCenter.HPP"
+#include "../../Include/EventHandlerCenter/EventHandlerCenter.HPP"
 #include "ConfigFileOperations.HPP"
 #include "TelegramBotAPI.HPP"
 

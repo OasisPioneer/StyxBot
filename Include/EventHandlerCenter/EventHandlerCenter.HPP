@@ -3,7 +3,7 @@
 
 #include <string>
 
-#include "LoggingSystem.HPP"
+#include "../LoggingSystem.HPP"
 
 class EventHandlerCenter
 {
