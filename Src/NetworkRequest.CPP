@@ -2,11 +2,7 @@
 
 #include <curl/curl.h>
 
-#include "LoggingSystem.HPP"
-
-inline LoggingSystem LOG("NetworkRequest-LOG.txt");
-
-NetworkRequest::NetworkRequest()
+NetworkRequest::NetworkRequest() : LOG("NetworkRequest-LOG.txt")
 {
     curl_global_init(CURL_GLOBAL_ALL);
 }

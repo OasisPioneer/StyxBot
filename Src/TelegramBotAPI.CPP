@@ -4,7 +4,7 @@
 #include <curl/curl.h>
 #include <nlohmann/json.hpp>
 
-TelegramBotAPI::TelegramBotAPI() : LOG("TelegramBotAPI-LOG.txt")
+TelegramBotAPI::TelegramBotAPI() : LOG("TelegramBotAPI-LOG.txt"), Net()
 {
     auto Token = ReadConfigFile<std::string>("ConfigFile.Json", "TelegramBotToken");
     if (Token.has_value())
@@ -25,7 +25,7 @@ std::string TelegramBotAPI::GetBotName()
     try
     {
         const std::string URL = TelegramBotURL + "getMe";
-        std::string Res = Net.HTTP_GET(URL.c_str());
+        std::string Res = Net.HTTP_GET(URL);
         nlohmann::json Json = nlohmann::json::parse(Res);
         // if (!Json.value("ok", true))
         if (!Json.contains("ok") || !Json["ok"].get<bool>())
@@ -53,7 +53,7 @@ std::string TelegramBotAPI::GetUpdates(int offset)
     try
     {
         const std::string URL = TelegramBotURL + "getUpdates?timeout=5&offset=" + std::to_string(offset);
-        std::string Response = Net.HTTP_GET(URL.c_str());
+        std::string Response = Net.HTTP_GET(URL);
         if (Response.empty()) {
             LOG.Log(LoggingSystem::ERROR, "Empty response from Telegram API.");
         }
