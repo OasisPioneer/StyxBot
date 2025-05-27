@@ -10,10 +10,17 @@
 
 struct Button
 {
-    int ID;                 // 按钮ID
-    std::string Type;       // 按钮类型
-    std::string Title;      // 按钮文本
-    std::string Data;       // 按钮数据: 文字或链接
+    int ID;
+    std::string Type;
+    std::string Title;
+    std::string Data;
+};
+
+struct ADS
+{
+    int ID;
+    std::string Title;
+    std::string URL;
 };
 
 class StyxSQLite

@@ -1,8 +1,6 @@
 #ifndef EVENT_HANDLER_CENTER_HPP
 #define EVENT_HANDLER_CENTER_HPP
 
-#include <string>
-
 #include "../LoggingSystem.HPP"
 
 class EventHandlerCenter

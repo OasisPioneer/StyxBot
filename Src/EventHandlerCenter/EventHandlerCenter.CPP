@@ -4,6 +4,7 @@
 
 #include <thread>
 #include <chrono>
+#include <sstream>
 
 #include <nlohmann/json.hpp>
 
@@ -14,6 +15,7 @@ void EventHandlerCenter::Start()
     int offset = 0;
     TelegramBotAPI TelegramBotAPI;
     LOG.Log(LoggingSystem::INFO, "Polling in Progress.");
+
     while (true)
     {
         std::string Updates = TelegramBotAPI.GetUpdates(offset);
@@ -59,9 +61,14 @@ void EventHandlerCenter::Start()
                         // std::string Text = Message["text"].get<std::string>();
                         std::string Text = Message.value("text", "");
 
-                        LOG.Log(LoggingSystem::INFO, "UserName: " + FromName + " UserAccount: " + FromUserName + " UserID: " + FromID + " Text: " + Text);
+                        std::ostringstream LogStream;
+                        LogStream << "UserName: " << FromName << " UserAccount: " << FromUserName
+                                  << " UserID: " << FromID << " Text: " << Text;
+
+                        LOG.Log(LoggingSystem::INFO, LogStream.str());
 
                         // 事件处理 - Event Handling
+
                         if (Message.contains("sticker") && !Message["sticker"].is_null()) // [EN]Sticker message [CN]贴纸消息
                         {
                             // std::string Sticker = Message["sticker"]["file_id"].get<std::string>();
