@@ -14,20 +14,30 @@ EventHandlerCenter::EventHandlerCenter() : LOG("EventHandlerCenter-LOG.txt") {}
 
 void EventHandlerCenter::Start()
 {
-    StyxSQLite DB("StyxSQLite.db");
-    if (!DB.INIT())
+    StyxSQLite SQLite("StyxSQLite.db");
+    if (!SQLite.INIT())
     {
         LOG.Log(LoggingSystem::ERROR, "Failed to initialize StyxSQLite Database.");
         return;
     }
 
     int offset = 0;
-    TelegramBotAPI TelegramBotAPI;
+    TelegramBotAPI StyxBot;
     LOG.Log(LoggingSystem::INFO, "Polling in Progress.");
+
+    auto AdministratorIDCard = ReadConfigFile<long long>("ConfigFile.Json", "AdministratorIDCard");
+    long long AdministratorAccount;
+    if (AdministratorIDCard.has_value())
+    {
+        AdministratorAccount = AdministratorIDCard.value();
+    } else
+    {
+        AdministratorAccount = 0;
+    }
 
     while (true)
     {
-        std::string Updates = TelegramBotAPI.GetUpdates(offset);
+        std::string Updates = StyxBot.GetUpdates(offset);
         if (Updates.empty())
         {
             LOG.Log(LoggingSystem::INFO, "No updates received.");
@@ -46,10 +56,10 @@ void EventHandlerCenter::Start()
                         nlohmann::json Message = UPDATE["message"];
 
                         int64_t From_ID = Message["from"]["id"];    // From_ID | FromID
-                        std::string FromID = std::to_string(From_ID);
+                        std::string FromID = std::to_string(From_ID);   // [EN]User ID [CN] 用户 ID
 
                         int64_t Chat_ID = Message["chat"]["id"];    // Chat_ID | ChatID
-                        std::string ChatID = std::to_string(Chat_ID);
+                        std::string ChatID = std::to_string(Chat_ID);   // [EN] [CN] 群组或频道 ID
 
                         std::string FromName;
                         std::string FromUserName;
@@ -67,7 +77,8 @@ void EventHandlerCenter::Start()
                             FromUserName = Message["from"]["username"].get<std::string>();
                         }
 
-                        if (!DB.AddUser(Chat_ID, FromName, FromUserName))
+                        // [EN]SQLite Add User - [CN] SQLite 添加 用户
+                        if (!SQLite.AddUser(Chat_ID, FromName, FromUserName))
                         {
                             LOG.Log(LoggingSystem::ERROR, "Failed to parse JSON response.");
                         }
@@ -130,25 +141,16 @@ void EventHandlerCenter::Start()
                         }
                         else if (Message.contains("new_chat_member") && !Message["new_chat_member"].is_null()) // [EN]New chat member [CN]新成员加入
                         {
-                            nlohmann::json NewMember = Message["new_chat_member"];
-                            if (NewMember.contains("user") && NewMember["user"].is_object())
-                            {
-                                NewMember = NewMember["user"];
-                            }
-                            std::string FirstMember = NewMember.value("first_name", "");
+                            SQLite.AddUserToGroup(From_ID, Chat_ID);
+                            StyxBot.SendMessage(ChatID, "@" + FromUserName + "\n欢迎加入冥河");
                         }
                         else if (Message.contains("left_chat_member") && !Message["left_chat_member"].is_null()) // [EN]Left chat member [CN]成员离开
                         {
-                            nlohmann::json LeftMember = Message["left_chat_member"];
-                            if (LeftMember.contains("user") && LeftMember["user"].is_object())
-                            {
-                                LeftMember = LeftMember["user"];
-                            }
-                            std::string FirstMember = LeftMember.value("first_name", "");
+                            StyxBot.SendMessage(ChatID, "又一位成员跳入了十八层地狱\n@" + FromUserName + "\n一路走好(骗你的,你去死吧!)");
                         }
                         else if (Message.contains("new_chat_title") && !Message["new_chat_title"].is_null()) // [EN]New chat title [CN]新群聊名称
                         {
-                            std::string NewChatTitle = Message["new_chat_title"].get<std::string>();
+                            auto NewChatTitle = Message["new_chat_title"].get<std::string>();
                         }
                         else if (Message.contains("new_chat_photo") && !Message["new_chat_photo"].is_null()) // [EN]New chat photo [CN]新群聊头像
                         {
@@ -193,9 +195,17 @@ void EventHandlerCenter::Start()
                             LOG.Log(LoggingSystem::INFO, LogStream.str());
 
                             /*
+                             * [EN] Text Keyword Processing
+                             * [CN] 文本关键词处理
+                             */
+
+                            // if (Text == "赞助冥河")
+
+                            /*
                              * 通过正则判断用户输入的指令是否带有参数 如果带有参数则进入有参处理
                              */
-                            std::regex Command_Regex(R"^(\\/[A-Za-z]+)(?=[^A-Za-z]|$)(?:@\\w+)?\\s*(.*)$");
+
+                            std::regex Command_Regex("^(\\/[A-Za-z]+)(?=[^A-Za-z]|$)(?:@\\w+)?\\s*(.*)$");
                             std::smatch Match;
                             if (!std::regex_match(Text, Match, Command_Regex))
                                 continue;
@@ -204,8 +214,84 @@ void EventHandlerCenter::Start()
 
                             LOG.Log(LoggingSystem::DEBUG, "Command= "+ Command + " Args= " + Args);
 
+                            /*
+                             * [CN] 判断用户是否被邀加入
+                             */
+                            if (Command == "/start" && !Args.empty() && Args.rfind("Invite_", 0) == 0)
+                            {
+                                long long Invite = std::stoll(Args.substr(7));
+                                if (Invite == From_ID)
+                                {
+                                    StyxBot.SendMessage(ChatID, "禁止邀请自己");
+                                    continue;
+                                }
+                                long long PrevInvite = SQLite.GetInviteID(From_ID);
+                                if (PrevInvite != 0)
+                                {
+                                    StyxBot.SendMessage(FromID, "");
+                                    continue;
+                                }
+                                SQLite.AddUser(From_ID, FromName, FromUserName);
+                                SQLite.SetInvite(From_ID, Invite);
+                                SQLite.AddBalance(Invite, 5);
+                                StyxBot.SendMessage(std::to_string(Invite), "成功邀请一名新用户, 奖励 +5 冥币");
+                                continue;
+                            } else if (Command == "/start" && Args.empty())
+                            {
+                                StyxBot.SendMessage(FromID, "欢迎使用冥河机器人");
+                                continue;
+                            }
 
 
+                            // [EN] [CN] 无参指令
+                            if (Args.empty())
+                            {
+                                if (Command == "/invite")
+                                {
+                                    std::string BotUserName = StyxBot.GetBotName();
+                                    std::string InviteLink  = "https://t.me/" + BotUserName + "?start=Invite_" + FromID;
+                                    StyxBot.SendMessage(FromID, "专属邀请链接:\n" + InviteLink + "\n邀请新人即可获得 5 冥币");
+                                }
+                                else if (Command == "/GroupOrChannel")
+                                {
+                                    if (From_ID == AdministratorAccount || SQLite.IsAdmin(From_ID))
+                                    {
+                                        if (SQLite.AddGroup(Chat_ID))
+                                        {
+                                            StyxBot.SendMessage(ChatID , "@" +FromUserName+ " 已成功将本群添加到数据库中");
+                                        } else
+                                        {
+                                            StyxBot.SendMessage(ChatID, "@" +FromUserName+" 添加失败请检查数据库语句");
+                                        }
+                                    }
+                                    else
+                                    {
+                                        StyxBot.SendMessage(ChatID, "@" +FromUserName+" 你无权使用此功能!!!");
+                                    }
+                                }
+
+                            // [EN] [CN] 有参指令
+                            } else if (!Args.empty())
+                            {
+                                // [EN] [CN] 修改邀请他人分数
+                                // if (Command == "/ModifyInvitationScore")
+                                // {
+                                //     if (From_ID == AdministratorAccount || SQLite.IsAdmin(From_ID))
+                                //     {
+                                //         if (WriteConfigFile("InvitationScore.Json", "Integral", Args))
+                                //         {
+                                //             StyxBot.SendMessage(FromID, "邀请奖励修改成功\n邀请奖励为:" + Args);
+                                //         } else
+                                //         {
+                                //             StyxBot.SendMessage(FromID, "邀请奖励修改失败\n请检查指令是否错误或代码是否有误");
+                                //         }
+                                //     } else
+                                //     {
+                                //         StyxBot.SendMessage(FromID, "你无权使用此功能!!!");
+                                //     }
+                                // }
+
+                            }
 
 
 

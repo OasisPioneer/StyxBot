@@ -58,6 +58,11 @@ public:
     long long GetInviteID(long long UserID) const;
     int GetInviteNumberUsers(long long UserID) const;
 
+    // 用户群聊事件
+    bool AddUserToGroup(long long UserID, long long ChatID);
+    bool IsUserInGroup(long long UserID, long long ChatID);
+    bool RemoveUserFromGroup(long long UserID, long long ChatID);
+
     // 群组/频道接口
     bool AddGroup(long long ChatID);
     bool RemoveGroup(long long ChatID);

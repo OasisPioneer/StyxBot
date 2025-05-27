@@ -23,6 +23,7 @@ bool StyxSQLite::INIT() {
         "CREATE TABLE IF NOT EXISTS USERS (ID INTEGER PRIMARY KEY AUTOINCREMENT, UserID INTEGER UNIQUE, FromName TEXT, FromUserName TEXT UNIQUE, Balance INTEGER DEFAULT 0, InviteID INTEGER NULL, Violations INTEGER DEFAULT 0);",
         "CREATE TABLE IF NOT EXISTS SignIn (UserID INTEGER NOT NULL, SignDate TEXT NOT NULL, Timestamp INTEGER NOT NULL, PRIMARY KEY (UserID, SignDate));",
         "CREATE TABLE IF NOT EXISTS GROUPS (ChatID INTEGER PRIMARY KEY);",
+        "CREATE TABLE IF NOT EXISTS USER_GROUP (UserID INTEGER NOT NULL, ChatID INTEGER NOT NULL, PRIMARY KEY(UserID, ChatID));",
         "CREATE TABLE IF NOT EXISTS BUTTON (ID INTEGER PRIMARY KEY AUTOINCREMENT, Type TEXT NOT NULL, Title TEXT NOT NULL, Data TEXT NOT NULL, CommandType TEXT NOT NULL);",
         "CREATE TABLE IF NOT EXISTS ADS (ID INTEGER PRIMARY KEY AUTOINCREMENT, Title TEXT NOT NULL, URL TEXT NOT NULL);"
     };
@@ -94,7 +95,7 @@ bool StyxSQLite::AddButton(const Button& Button) {
 
 bool StyxSQLite::UpdateButton(const Button& Button) {
     const std::string SQL =
-        "UPDATE BUTTON SET Type = ?, Title = ?, Data = ?, CommandType = ?, WHERE ID = ?;";
+        "UPDATE BUTTON SET Type = ?, Title = ?, Data = ?, CommandType = ? WHERE ID = ?;";
     sqlite3_stmt* STMT = nullptr;
     if (sqlite3_prepare_v2(SQLiteDB, SQL.c_str(), -1, &STMT, nullptr) != SQLITE_OK) {
         LOG.Log(LoggingSystem::ERROR, "UpdateButton Prepare Failed: " + std::string(sqlite3_errmsg(SQLiteDB)));
@@ -344,6 +345,62 @@ int StyxSQLite::GetInviteNumberUsers(long long UserID) const {
         return -1;
     }
     return static_cast<int>(Count);
+}
+
+bool StyxSQLite::AddUserToGroup(long long UserID, long long ChatID) {
+    const std::string SQL = "INSERT OR IGNORE INTO USER_GROUP(UserID, ChatID) VALUES(?, ?);";
+    sqlite3_stmt* STMT = nullptr;
+    if (sqlite3_prepare_v2(SQLiteDB, SQL.c_str(), -1, &STMT, nullptr) != SQLITE_OK) {
+        LOG.Log(LoggingSystem::ERROR, "AddUserToGroup Prepare Failed: " + std::string(sqlite3_errmsg(SQLiteDB)));
+        return false;
+    }
+
+    sqlite3_bind_int64(STMT, 1, UserID);
+    sqlite3_bind_int64(STMT, 2, ChatID);
+
+    bool Result = (sqlite3_step(STMT) == SQLITE_DONE);
+    if (!Result)
+        LOG.Log(LoggingSystem::ERROR, "AddUserToGroup Exec Failed: " + std::string(sqlite3_errmsg(SQLiteDB)));
+
+    sqlite3_finalize(STMT);
+    return Result;
+}
+
+bool StyxSQLite::IsUserInGroup(long long UserID, long long ChatID) {
+    const std::string SQL = "SELECT 1 FROM USER_GROUP WHERE UserID = ? AND ChatID = ? LIMIT 1;";
+    sqlite3_stmt* STMT = nullptr;
+
+    if (sqlite3_prepare_v2(SQLiteDB, SQL.c_str(), -1, &STMT, nullptr) != SQLITE_OK) {
+        LOG.Log(LoggingSystem::ERROR, "IsUserInGroup Prepare Failed: " + std::string(sqlite3_errmsg(SQLiteDB)));
+        return false;
+    }
+
+    sqlite3_bind_int64(STMT, 1, UserID);
+    sqlite3_bind_int64(STMT, 2, ChatID);
+
+    bool Exists = (sqlite3_step(STMT) == SQLITE_ROW);
+    sqlite3_finalize(STMT);
+    return Exists;
+}
+
+bool StyxSQLite::RemoveUserFromGroup(long long UserID, long long ChatID) {
+    const std::string SQL = "DELETE FROM USER_GROUP WHERE UserID = ? AND ChatID = ?;";
+    sqlite3_stmt* STMT = nullptr;
+
+    if (sqlite3_prepare_v2(SQLiteDB, SQL.c_str(), -1, &STMT, nullptr) != SQLITE_OK) {
+        LOG.Log(LoggingSystem::ERROR, "RemoveUserFromGroup Prepare Failed: " + std::string(sqlite3_errmsg(SQLiteDB)));
+        return false;
+    }
+
+    sqlite3_bind_int64(STMT, 1, UserID);
+    sqlite3_bind_int64(STMT, 2, ChatID);
+
+    bool Result = (sqlite3_step(STMT) == SQLITE_DONE);
+    if (!Result)
+        LOG.Log(LoggingSystem::ERROR, "RemoveUserFromGroup Exec Failed: " + std::string(sqlite3_errmsg(SQLiteDB)));
+
+    sqlite3_finalize(STMT);
+    return Result;
 }
 
 bool StyxSQLite::AddGroup(long long ChatID) {
