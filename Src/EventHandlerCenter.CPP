@@ -1,4 +1,4 @@
-#include "../../Include/EventHandlerCenter/EventHandlerCenter.HPP"
+#include "EventHandlerCenter.HPP"
 #include "ConfigFileOperations.HPP"
 #include "TelegramBotAPI.HPP"
 
@@ -58,14 +58,7 @@ void EventHandlerCenter::Start()
                             FromUserName = Message["from"]["username"].get<std::string>();
                         }
 
-                        // std::string Text = Message["text"].get<std::string>();
-                        std::string Text = Message.value("text", "");
 
-                        std::ostringstream LogStream;
-                        LogStream << "UserName: " << FromName << " UserAccount: " << FromUserName
-                                  << " UserID: " << FromID << " Text: " << Text;
-
-                        LOG.Log(LoggingSystem::INFO, LogStream.str());
 
                         // 事件处理 - Event Handling
 
@@ -179,16 +172,42 @@ void EventHandlerCenter::Start()
                         }
                         else if (Message.contains("text") && !Message["text"].is_null())
                         {
-                            TelegramBotAPI.SendMessage(ChatID, "[EN] You sent a text message: " + Text + "\n\n[CN] 您发送了一条文本消息：" + Text);
-                            LOG.Log(LoggingSystem::INFO, "UserID: "+ ChatID + " Text: " + Text);
+                            // std::string Text = Message["text"].get<std::string>();
+                            std::string Text = Message.value("text", "");
+
+                            std::ostringstream LogStream;
+                            LogStream << "UserName: " << FromName << " UserAccount: " << FromUserName
+                                      << " UserID: " << FromID << " Text: " << Text;
+
+                            LOG.Log(LoggingSystem::INFO, LogStream.str());
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                         } else
                         {
                             LOG.Log(LoggingSystem::WARNING, "Unknown Type");
                             continue;
                         }
-
-
-
                     }
                 }
                 if (!Json["result"].empty()) {

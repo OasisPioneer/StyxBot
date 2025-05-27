@@ -1,7 +1,7 @@
 #include <iostream>
 #include "LoggingSystem.HPP"
 #include "ConfigFileOperations.HPP"
-#include "../Include/EventHandlerCenter/EventHandlerCenter.HPP"
+#include "../Include/EventHandlerCenter.HPP"
 
 const std::string ADMIN_ID_KEY = "AdministratorIDCard";
 const std::string TELEGRAM_TOKEN_KEY = "TelegramBotToken";

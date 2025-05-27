@@ -17,7 +17,7 @@ add_executable(StyxBot
 		Src/NetworkRequest.CPP
 		Src/TelegramBotAPI.CPP
 		Src/StyxSQLite.CPP
-		Src/EventHandlerCenter/EventHandlerCenter.CPP
+		Src/EventHandlerCenter.CPP
 )
 
 target_include_directories(StyxBot PRIVATE

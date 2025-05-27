@@ -14,6 +14,7 @@ struct Button
     std::string Type;
     std::string Title;
     std::string Data;
+    std::string CommandType;
 };
 
 struct ADS
@@ -29,6 +30,11 @@ public:
     explicit StyxSQLite(std::string  SQLitePath);
 
     bool INIT();
+
+    bool AddButton(const Button& Button);   // 添加按钮
+    bool UpdateButton(const Button& Button);// 更新按钮
+    bool RemoveButton(int ButtonDataID);        // 删除按钮
+    std::vector<Button> ListButton();       // 列出按钮
 
     ~StyxSQLite();
 private:
