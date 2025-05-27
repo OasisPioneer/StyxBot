@@ -1,7 +1,9 @@
 #include "EventHandlerCenter.HPP"
 #include "ConfigFileOperations.HPP"
 #include "TelegramBotAPI.HPP"
+#include "StyxSQLite.HPP"
 
+#include <regex>
 #include <thread>
 #include <chrono>
 #include <sstream>
@@ -12,6 +14,13 @@ EventHandlerCenter::EventHandlerCenter() : LOG("EventHandlerCenter-LOG.txt") {}
 
 void EventHandlerCenter::Start()
 {
+    StyxSQLite DB("StyxSQLite.db");
+    if (!DB.INIT())
+    {
+        LOG.Log(LoggingSystem::ERROR, "Failed to initialize StyxSQLite Database.");
+        return;
+    }
+
     int offset = 0;
     TelegramBotAPI TelegramBotAPI;
     LOG.Log(LoggingSystem::INFO, "Polling in Progress.");
@@ -58,7 +67,10 @@ void EventHandlerCenter::Start()
                             FromUserName = Message["from"]["username"].get<std::string>();
                         }
 
-
+                        if (!DB.AddUser(Chat_ID, FromName, FromUserName))
+                        {
+                            LOG.Log(LoggingSystem::ERROR, "Failed to parse JSON response.");
+                        }
 
                         // 事件处理 - Event Handling
 
@@ -178,10 +190,19 @@ void EventHandlerCenter::Start()
                             std::ostringstream LogStream;
                             LogStream << "UserName: " << FromName << " UserAccount: " << FromUserName
                                       << " UserID: " << FromID << " Text: " << Text;
-
                             LOG.Log(LoggingSystem::INFO, LogStream.str());
 
+                            /*
+                             * 通过正则判断用户输入的指令是否带有参数 如果带有参数则进入有参处理
+                             */
+                            std::regex Command_Regex(R"^(\\/[A-Za-z]+)(?=[^A-Za-z]|$)(?:@\\w+)?\\s*(.*)$");
+                            std::smatch Match;
+                            if (!std::regex_match(Text, Match, Command_Regex))
+                                continue;
+                            std::string Command = Match[1];
+                            std::string Args = Match[2];
 
+                            LOG.Log(LoggingSystem::DEBUG, "Command= "+ Command + " Args= " + Args);
 
 
 
