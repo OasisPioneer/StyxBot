@@ -1,16 +1,5 @@
 # Styx Bot
 
-<img src="https://socialify.git.ci/OasisPioneer/StyxBot/image?language=1&owner=1&name=1&stargazers=1&theme=Light" alt="StyxBot" width="640" height="320" />
+<img src="https://socialify.git.ci/OasisPioneer/StyxBot/image?language=1&owner=1&name=1&stargazers=1&theme=Light" alt="StyxBot" width="640" height="320" style="display: block; margin: auto;" />
 
 > A lightweight, high-performance Telegram Bot framework written in modern C++ using LibCURL and SQLite.
-
-## Configuration
-
-To properly set up the bot, please ensure you have a valid configuration file. The configuration file should be in JSON format and placed in the working directory of the bot. If the configuration file is missing or empty, the bot will automatically create a default configuration file with empty values for `AdministratorIDCard` and `TelegramBotToken`. You need to manually edit this file to fill in the required information.
-
-Example configuration file content:
-```json
-{
-    "AdministratorIDCard": "",
-    "TelegramBotToken": ""
-}

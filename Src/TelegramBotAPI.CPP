@@ -69,7 +69,7 @@ std::string TelegramBotAPI::GetUpdates(int offset)
 std::string TelegramBotAPI::SendMessage(const std::string& UserID, const std::string& Message)
 {
     std::string URL = TelegramBotURL + "sendMessage";
-    char* EscapedText = curl_easy_escape(nullptr, Message.c_str(), Message.length());
+    char* EscapedText = curl_easy_escape(nullptr, Message.c_str(), static_cast<int>(Message.length()));
     std::string POSTField = "chat_id=" + UserID + "&text=" + std::string(EscapedText);
     curl_free(EscapedText);
     return Net.HTTP_POST(URL, POSTField);
