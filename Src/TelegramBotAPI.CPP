@@ -13,8 +13,8 @@ TelegramBotAPI::TelegramBotAPI() : LOG("TelegramBotAPI-LOG.txt"), Net()
         TelegramBotURL = "https://api.telegram.org/bot" + TelegramBotToken + "/";
     } else
     {
-        TelegramBotToken = "";
-        TelegramBotURL = "";
+        TelegramBotToken = nullptr;
+        TelegramBotURL = nullptr;
         LOG.Log(LoggingSystem::WARNING, "Failed to load TelegramBotToken from configuration file. Using empty token.");
         return;
     }

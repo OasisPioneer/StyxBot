@@ -11,6 +11,7 @@ class TelegramBotAPI
 public:
     TelegramBotAPI();
 
+    // Get Bot Name
     std::string GetBotName();
 
     std::string GetUpdates(int offset);
